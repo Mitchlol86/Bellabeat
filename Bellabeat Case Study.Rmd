@@ -4,134 +4,109 @@ author: "Mitchell Monteith"
 date: "`r Sys.Date()`"
 output:
   cleanrmd::html_document_clean:
-    theme: water-dark
+    theme: bamboo
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```
-output: distill::distill_article
-
-output:
-  cleanrmd::html_document_clean:
-    theme: NULL
-
-html_document:
-    theme: journal
-    toc: yes
-    toc_float: true
-```
-
 ## Prepare Stage
 
 ### Install required packages
-```
 install.packages('tidyverse')
-
 install.packages('tidyr')
 install.packages('readr')
 install.packages('ggplot2')
 install.packages('dplyr')
 install.packages('ggpubr')
-```
+
 
 ### Load required packages
-```
+library(tidyverse)
+theme_set(theme_bw())
 library(tidyr)
 library(readr)
 library(ggplot2)
 library(dplyr)
 library(ggpubr)
-```
+
 
 ### Set working directory to the capstone folder
-```
 setwd("C:/Users/m_mon/Desktop/Bellabeat")
-```
+
 
 ### Import data sets from CSV files
-```
 weight <- read.csv("weightLogInfo_merged.csv")
 acty <- read.csv("dailyActivity_merged.csv")
 sleep <- read.csv("sleepDay_merged.csv")
-```
+
 
 ### First glance of weight data set in RStudio
-```
 head(weight, 10)
 glimpse(weight, 10)
 colnames(weight)
-```
+
 
 ### Statistics summary of interesting weight columns
-```
 weight %>%
   select(WeightKg,
          Fat,
          BMI) %>%
   summary()
-```
+
 
 ### First glance of acty data set in RStudio
-```
 head(acty, 10)
 glimpse(acty, 10)
 colnames(acty)
-```
+
 
 ### Statistics summary of interesting acty columns
-```
 acty %>%
   select(TotalSteps,
          TotalDistance,
          SedentaryMinutes,
          Calories) %>%
   summary()
-```
+
 
 ### First glance of sleep data set in RStudio
-```
 head(sleep, 10)
 glimpse(sleep, 10)
 colnames(sleep)
-```
+
 
 ### Statistics summary of interesting sleep columns
-```
 sleep %>%
   select(TotalMinutesAsleep,
          TotalTimeInBed) %>%
   summary()
-```
 
-## Process Stage
+
+## Process & Analyse Stages
 
 ### Merge our first two data sets into one for ease of interpretation
-```
 merged <- merge(weight, acty, by = "Id")
-```
+
 
 ### Check merge occurred correctly
-```View(merged)
+View(merged)
 head(merged, 10)
 colnames(merged, 10)
-```
+
 
 ### Merge new data set and third data set into one
-```
 merged <- merge(merged, sleep, by = "Id")
-```
+
 
 ### Check merge occurred correctly
-```
 colnames(merged, 10)
 head(merged)
-```
+
 
 ### Create refined data set with only columns of interest
-```
 refined <- merged %>%
   select(Id,
          WeightKg,
@@ -143,34 +118,77 @@ refined <- merged %>%
          Calories,
          TotalMinutesAsleep,
          TotalTimeInBed)
-```
+
 
 ### Check refinement occurred correctly
-```
 head(refined, 10)
 View(refined)
-```
+
 
 ### Understand data by unique Id
-```
 refined %>%
   group_by(Id) %>%
   summarise(total = n())
-```
+
 
 ### Check for duplicate rows
-```
 duplicated(refined)
-```
+
 
 ### Create new data set with no duplicates
-```
 refined_unique <- unique(refined)
 refined_unique
-```
 
-### Understand 
-```
+
+### Understand final, cleaned data set
 refined_unique %>%
   summary()
-```
+
+
+## Share Stage
+
+### First visual identifies a positive correlation between total steps taken and calories burned, implying moving more increases caloric burn
+refined_unique %>% 
+  ggplot(aes(x=TotalSteps, y=Calories)) + 
+  geom_point() + 
+  labs(x="Total Steps Taken", y="Calories Burned", title="Total Steps Taken vs Calories Burned") + 
+  theme_bw(base_size = 16) + 
+  geom_smooth(method=lm, se=FALSE) + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+### Check correlation more accurately with coefficient function
+cor(refined_unique$TotalSteps, refined_unique$Calories)
+
+### Save visual
+ggsave("TotalSteps_CaloriesBurned.png", width=8, height=8, dpi=300)
+
+### Second visual identifies a negative correlation between total steps taken and body weight, implying moving more reduces body weight
+refined_unique %>% 
+  ggplot(aes(x=TotalSteps, y=WeightKg)) + 
+  geom_point() + 
+  labs(x="Total Steps Taken", y="Weight (kg)", title="Total Steps Taken vs Body Weight (kg)") + 
+  theme_bw(base_size = 16) + 
+  geom_smooth(method=lm, se=FALSE) + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+### Check correlation more accurately with coefficient function
+cor(refined_unique$TotalSteps, refined_unique$WeightKg)
+
+### Save visual  
+ggsave("TotalSteps_BodyWeight.png", width=8, height=8, dpi=300)
+
+### Third visual identifies a positive correlation between remaining sedentary and body weight, implying moving more frequently reduces body weight
+refined_unique %>% 
+  ggplot(aes(x=TotalSteps, y=SedentaryMinutes)) + 
+  geom_point() + 
+  labs(x="Total Steps Taken", y="Time Spent Sedentary (minutes)", title="Total Time in Bed vs Body Weight (kg)") + 
+  theme_bw(base_size = 16) + 
+  geom_smooth(method=lm, se=FALSE) + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+### Check correlation more accurately with coefficient function
+cor(refined_unique$TotalSteps, refined_unique$SedentaryMinutes)
+
+### Save visual  
+ggsave("SedentaryMinutes_BodyWeight.png", width=8, height=8, dpi=300)
+  
